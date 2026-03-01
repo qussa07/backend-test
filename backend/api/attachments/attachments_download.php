@@ -2,7 +2,7 @@
 
 require __DIR__ . '/../../config/database.php';
 
-$fileId = $segments[2];
+$fileId = $segments[3];
 
 $sql = "SELECT filepath FROM ticket_attachments WHERE id = ?";
 $result = db()->execute_query($sql, [$fileId]);

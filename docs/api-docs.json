@@ -1,0 +1,507 @@
+{
+	"echoapi": "1.0.0",
+	"info": {
+		"title": "Tickets Support API",
+		"description": "REST API для управления заявками на техническую поддержку",
+		"version": "1.0.0"
+	},
+	"servers": [
+		{
+			"url": "http://localhost:8080",
+			"description": "Локальный сервер (Docker)"
+		}
+	],
+	"endpoints": [
+		{
+			"method": "GET",
+			"path": "/api/tickets",
+			"summary": "Получение списка заявок с пагинацией",
+			"description": "Возвращает список заявок с поддержкой пагинации, фильтрации по статусу и приоритету, поиском по заголовку/описанию и сортировкой по дате создания.",
+			"parameters": {
+				"query": [
+					{
+						"name": "page",
+						"type": "integer",
+						"required": false,
+						"default": 1,
+						"description": "Номер страницы (начинается с 1)"
+					},
+					{
+						"name": "status",
+						"type": "string",
+						"required": false,
+						"enum": ["open", "in_progress", "closed", "all"],
+						"description": "Фильтр по статусу. Значение «all» возвращает все статусы."
+					},
+					{
+						"name": "priority",
+						"type": "string",
+						"required": false,
+						"enum": ["low", "medium", "high", "all"],
+						"description": "Фильтр по приоритету. Значение «all» возвращает все приоритеты."
+					},
+					{
+						"name": "search",
+						"type": "string",
+						"required": false,
+						"description": "Поиск подстроки в полях title и description (LIKE %value%)"
+					},
+					{
+						"name": "sort",
+						"type": "string",
+						"required": false,
+						"enum": ["newest", "oldest"],
+						"default": "newest",
+						"description": "Сортировка по дате создания"
+					}
+				]
+			},
+			"responses": {
+				"200": {
+					"description": "Успешный ответ со списком заявок и метаданными пагинации",
+					"example": {
+						"tickets": [
+							{
+								"id": 1,
+								"title": "Проблема с принтером",
+								"description": "Принтер не печатает, выдаёт ошибку 0x8007007B",
+								"priority": "high",
+								"status": "open",
+								"created_at": "2026-01-15 10:30:00",
+								"updated_at": "2026-01-15 10:30:00",
+								"attachments": [
+									{
+										"id": 1,
+										"filepath": "678a1b2c3d4e5.pdf",
+										"size": 204800,
+										"uploaded_at": "2026-01-15 10:35:00"
+									}
+								]
+							}
+						],
+						"meta": {
+							"total": 42,
+							"page": 1,
+							"pages": 3,
+							"limit": 20
+						}
+					}
+				}
+			}
+		},
+		{
+			"method": "GET",
+			"path": "/api/tickets/{id}",
+			"summary": "Получение заявки по ID",
+			"description": "Возвращает полную информацию о заявке, включая список вложений.",
+			"parameters": {
+				"path": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "Уникальный идентификатор заявки"
+					}
+				]
+			},
+			"responses": {
+				"200": {
+					"description": "Заявка найдена",
+					"example": {
+						"id": 1,
+						"title": "Проблема с принтером",
+						"description": "Принтер не печатает, выдаёт ошибку 0x8007007B",
+						"priority": "high",
+						"status": "open",
+						"created_at": "2026-01-15 10:30:00",
+						"updated_at": "2026-01-15 10:30:00",
+						"attachments": [
+							{
+								"id": 1,
+								"filepath": "678a1b2c3d4e5.pdf",
+								"size": 204800,
+								"uploaded_at": "2026-01-15 10:35:00"
+							}
+						]
+					}
+				},
+				"400": {
+					"description": "Некорректный ID",
+					"example": {
+						"message": "Некорректный ID тикета",
+						"statusCode": 400
+					}
+				},
+				"404": {
+					"description": "Заявка не найдена",
+					"example": {
+						"message": "Тикет не найден",
+						"statusCode": 404
+					}
+				}
+			}
+		},
+		{
+			"method": "POST",
+			"path": "/api/tickets",
+			"summary": "Создание новой заявки",
+			"description": "Создаёт новую заявку на техническую поддержку. Статус устанавливается автоматически как «open».",
+			"requestBody": {
+				"contentType": "application/json",
+				"required": true,
+				"fields": [
+					{
+						"name": "title",
+						"type": "string",
+						"required": true,
+						"description": "Заголовок заявки (от 3 до 255 символов)"
+					},
+					{
+						"name": "description",
+						"type": "string",
+						"required": true,
+						"description": "Описание проблемы (не менее 20 символов)"
+					},
+					{
+						"name": "priority",
+						"type": "string",
+						"required": true,
+						"enum": ["low", "medium", "high"],
+						"description": "Приоритет заявки"
+					}
+				],
+				"example": {
+					"title": "Проблема с принтером",
+					"description": "Принтер не печатает, выдаёт ошибку 0x8007007B",
+					"priority": "high"
+				}
+			},
+			"responses": {
+				"201": {
+					"description": "Заявка успешно создана",
+					"example": {
+						"message": "Тикет успешно создан",
+						"id": 1
+					}
+				},
+				"400": {
+					"description": "Ошибка валидации",
+					"example": {
+						"title": "Заголовок должен быть от 3 до 255 символов",
+						"description": "Описание должно быть не менее 20 символов",
+						"priority": "Некорректный приоритет"
+					}
+				},
+				"500": {
+					"description": "Ошибка базы данных",
+					"example": {
+						"message": "Ошибка базы данных: ...",
+						"statusCode": 500
+					}
+				}
+			}
+		},
+		{
+			"method": "PUT",
+			"path": "/api/tickets/{id}",
+			"summary": "Обновление заявки",
+			"description": "Частичное обновление заявки. Передаются только изменяемые поля. ID заявки передаётся в теле запроса.",
+			"requestBody": {
+				"contentType": "application/json",
+				"required": true,
+				"fields": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID обновляемой заявки"
+					},
+					{
+						"name": "title",
+						"type": "string",
+						"required": false,
+						"description": "Новый заголовок (от 3 до 255 символов)"
+					},
+					{
+						"name": "description",
+						"type": "string",
+						"required": false,
+						"description": "Новое описание (не менее 20 символов)"
+					},
+					{
+						"name": "priority",
+						"type": "string",
+						"required": false,
+						"enum": ["low", "medium", "high"],
+						"description": "Новый приоритет"
+					},
+					{
+						"name": "status",
+						"type": "string",
+						"required": false,
+						"enum": ["open", "in_progress", "closed"],
+						"description": "Новый статус"
+					}
+				],
+				"example": {
+					"id": 1,
+					"status": "in_progress",
+					"priority": "medium"
+				}
+			},
+			"responses": {
+				"200": {
+					"description": "Заявка обновлена",
+					"example": {
+						"message": "Тикет обновлён"
+					}
+				},
+				"400": {
+					"description": "Ошибка валидации",
+					"example": {
+						"title": "Заголовок должен быть от 3 до 255 символов",
+						"data": "Нет полей для обновления"
+					}
+				},
+				"404": {
+					"description": "Заявка не найдена",
+					"example": {
+						"message": "Тикет не найден",
+						"statusCode": 404
+					}
+				}
+			}
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/tickets/{id}",
+			"summary": "Удаление заявки",
+			"description": "Удаляет заявку и все связанные вложения (файлы удаляются с диска, записи — каскадно из БД).",
+			"requestBody": {
+				"contentType": "application/json",
+				"required": true,
+				"fields": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID удаляемой заявки"
+					}
+				],
+				"example": {
+					"id": 1
+				}
+			},
+			"responses": {
+				"200": {
+					"description": "Заявка удалена",
+					"example": {
+						"message": "Тикет удалён"
+					}
+				},
+				"400": {
+					"description": "ID не указан или некорректен",
+					"example": {
+						"message": "ID обязателен",
+						"statusCode": 400
+					}
+				},
+				"404": {
+					"description": "Заявка не найдена",
+					"example": {
+						"message": "Тикет не найден",
+						"statusCode": 404
+					}
+				},
+				"500": {
+					"description": "Ошибка при удалении файлов",
+					"example": {
+						"message": "Ошибка при удалении файлов",
+						"statusCode": 500
+					}
+				}
+			}
+		},
+		{
+			"method": "POST",
+			"path": "/api/tickets/{id}/attachments",
+			"summary": "Загрузка файла-вложения к заявке",
+			"description": "Загружает файл и привязывает его к указанной заявке. Максимальный размер — 5 МБ. Допустимые форматы: PDF, DOCX, JPG, PNG.",
+			"parameters": {
+				"path": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID заявки, к которой загружается вложение"
+					}
+				]
+			},
+			"requestBody": {
+				"contentType": "multipart/form-data",
+				"required": true,
+				"fields": [
+					{
+						"name": "file",
+						"type": "file",
+						"required": true,
+						"description": "Файл вложения (PDF, DOCX, JPG, PNG; до 5 МБ)"
+					}
+				]
+			},
+			"responses": {
+				"201": {
+					"description": "Вложение загружено",
+					"example": {
+						"id": 5,
+						"ticket_id": 1,
+						"filepath": "678a1b2c3d4e5f.pdf",
+						"size": 204800,
+						"uploaded_at": "2026-01-15 10:35:00"
+					}
+				},
+				"400": {
+					"description": "Ошибка валидации файла",
+					"example": {
+						"message": "Файл слишком большой",
+						"statusCode": 400
+					}
+				},
+				"404": {
+					"description": "Заявка не найдена",
+					"example": {
+						"message": "Тикет не найден",
+						"statusCode": 404
+					}
+				},
+				"500": {
+					"description": "Ошибка сохранения файла",
+					"example": {
+						"message": "Не удалось сохранить файл",
+						"statusCode": 500
+					}
+				}
+			}
+		},
+		{
+			"method": "GET",
+			"path": "/api/tickets/{id}/attachments",
+			"summary": "Получение списка вложений заявки",
+			"description": "Возвращает все вложения, привязанные к указанной заявке, отсортированные по дате загрузки (новые первые).",
+			"parameters": {
+				"path": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID заявки"
+					}
+				]
+			},
+			"responses": {
+				"200": {
+					"description": "Список вложений",
+					"example": [
+						{
+							"id": 1,
+							"filepath": "678a1b2c3d4e5.pdf",
+							"size": 204800,
+							"uploaded_at": "2026-01-15 10:35:00"
+						}
+					]
+				},
+				"404": {
+					"description": "Заявка не найдена",
+					"example": {
+						"message": "Тикет не найден",
+						"statusCode": 404
+					}
+				}
+			}
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/tickets/{id}/attachments",
+			"summary": "Удаление вложения",
+			"description": "Удаляет вложение по его ID (передаётся как {id} в URL). Файл удаляется с диска и запись — из БД.",
+			"parameters": {
+				"path": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID вложения (ticket_attachments.id)"
+					}
+				]
+			},
+			"responses": {
+				"200": {
+					"description": "Вложение удалено",
+					"example": {
+						"message": "Вложение удалено"
+					}
+				},
+				"400": {
+					"description": "ID не указан",
+					"example": {
+						"message": "ID обязателен",
+						"statusCode": 400
+					}
+				},
+				"404": {
+					"description": "Вложение не найдено",
+					"example": {
+						"message": "Вложение не найдено",
+						"statusCode": 404
+					}
+				},
+				"500": {
+					"description": "Ошибка при удалении файла",
+					"example": {
+						"message": "Ошибка при удалении файла",
+						"statusCode": 500
+					}
+				}
+			}
+		},
+		{
+			"method": "GET",
+			"path": "/api/attachments/{id}",
+			"summary": "Скачивание файла вложения",
+			"description": "Возвращает бинарный файл вложения (Content-Type: application/octet-stream) для скачивания.",
+			"parameters": {
+				"path": [
+					{
+						"name": "id",
+						"type": "integer",
+						"required": true,
+						"description": "ID вложения (ticket_attachments.id)"
+					}
+				]
+			},
+			"responses": {
+				"200": {
+					"description": "Файл передаётся в виде бинарного потока",
+					"headers": {
+						"Content-Type": "application/octet-stream",
+						"Content-Disposition": "attachment; filename=\"<имя_файла>\""
+					}
+				},
+				"404": {
+					"description": "Вложение или файл не найдены",
+					"example": {
+						"message": "Файл не найден на сервере",
+						"statusCode": 404
+					}
+				},
+				"500": {
+					"description": "Ошибка базы данных",
+					"example": {
+						"message": "Ошибка базы данных",
+						"statusCode": 500
+					}
+				}
+			}
+		}
+	]
+}
